@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción de Mercado con ML Master</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 15px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #3e3e3e;
+            color: #e0e0e0;
+        }
+        button {
+            background-color: #6a0dad;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #5b0a8e;
+        }
+        .result div, #signals div {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #2c2c2c;
+            border-radius: 5px;
+        }
+        h1, h2 {
+            color: #6a0dad;
+        }
+        #countdown {
+            color: #ff8f8f;
+            margin: 10px 0;
+        }
+        .orderBook {
+            display: flex;
+            justify-content: space-between;
+        }
+        .orderBook div {
+            width: 48%;
+        }
+        .long {
+            color: #4caf50; /* Verde para Long */
+        }
+        .short {
+            color: #f44336; /* Rojo para Short */
+        }
+        .buy {
+            color: #4caf50;
+        }
+        .sell {
+            color: #f44336;
+        }
+        #bids, #high {
+            color: #4caf50;
+        }
+        #asks, #low {
+            color: #f44336;
+        }
+        
+        #loader {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+        #chart {
+            height: 300px;
+            margin: 20px 0;
+        }
+        .signal {
+            display: flex;
+            justify-content: space-between;
+        }
+        .signal div {
+            padding: 5px 10px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 2px 0;
+        }
+        .strong-buy {
+            background-color: #4caf50;
+            color: rgb(25, 255, 40);
+        }
+        .buy {
+            background-color: #66bb6a;
+            color: rgb(78, 252, 92);
+        }
+        .neutral {
+            background-color: #ffeb3b;
+            color: rgb(255, 246, 122);
+        }
+        .sell {
+            background-color: #f44336;
+            color: rgb(253, 17, 17);
+        }
+        .strong-sell {
+            background-color: #d32f2f;
+            color: rgb(255, 58, 58);
+        }
+    </style>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #prediction { margin-top: 20px; font-size: 1.2em; }
+        .long { color: green; }
+        .short { color: red; }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+    <div class="container">
+        <h1>Predicción de Mercado con ML Master</h1>
+        <select id="coin">
+            <option value="BTCUSDT">Bitcoin (BTC/USDT)</option>
+                <option value="ETHUSDT">Ethereum (ETH/USDT)</option>
+                <option value="BNBUSDT">Binance Coin (BNB/USDT)</option>
+                <option value="MKRUSDT">MKR (MKR/USDT)</option>
+                <option value="SOLUSDT">SOLANA (SOL/USDT)</option>
+                <option value="AAVEUSDT">AAVE (AAVE/USDT)</option>
+                <option value="LTCUSDT">LiteCoin (LTC/USDT)</option>
+                <option value="TONUSDT">TONCoin (TON/USDT)</option>
+                <option value="FTMUSDT">FANTOM (FTM/USDT)</option>
+                <option value="DOGEUSDT">Dogecoin (DOGE/USDT)</option>
+                <option value="RAREUSDT">RARE (RARE/USDT)</option>
+                <option value="WIFUSDT">WIF (WIF/USDT)</option>
+                <option value="SUPERUSDT">SUPER (SUPER/USDT)</option>
+                <option value="UNIUSDT">UNI Coin (UNI/USDT)</option>
+                <option value="POPCATUSDT">POPCAT (POPCAT/USDT)</option>
+                <option value="LQTYUSDT">LQTY (LQTY/USDT)</option>
+                <option value="REEFUSDT">REEF (REEF/USDT)</option>
+                <option value="DOGSUSDT">DOGS (DOGS/USDT)</option>
+                <option value="TRXUSDT">TRON (TRX/USDT)</option>
+                <option value="SHIBUSDT">SHIBCoin (SHIB/USDT)</option>
+                <option value="ZETAUSDT">ZETA Coin (ZETA/USDT)</option>
+        </select>
+        <select id="interval">
+            <option value="1m">1 minuto</option>
+            <option value="5m">5 minutos</option>
+            <option value="15m">15 minutos</option>
+            <option value="30m">30 minutos</option>
+            <option value="1h">1 hora</option>
+            <option value="4h">4 horas</option>
+            <option value="1d">1 día</option>
+        </select>
+        <button id="fetchDataBtn" onclick="startFetching()">Comenzar</button>
+
+        <div id="loader">Cargando...</div>
+        <div id="countdown">Próxima solicitud en: 0 segundos</div>
+
+        <div class="result" id="result">
+            <div id="price">Precio actual: Cargando...</div>
+            <div id="high">Máximo: Cargando...</div>
+            <div id="low">Mínimo: Cargando...</div>
+            <div id="volume">Volumen en 24h: Cargando...</div>
+
+            <div id="prediction">Predicción: Cargando...</div>
+            <div class="orderBook" id="orderBook">
+                <div id="bids">Órdenes de Compra: Cargando...</div>
+                <div id="asks">Órdenes de Venta: Cargando...</div>
+            </div>
+            
+        </div>
+
+        <h2>Indicadores</h2>
+        <div id="indicators" style="margin-bottom: 10px;">
+            <div id="sma">SMA: Cargando...</div>
+            <div id="ema">EMA: Cargando...</div>
+            <div id="rsi">RSI: Cargando...</div>
+            <div id="macd">MACD: Cargando...</div>
+            <div id="bollinger">Bandas de Bollinger: Cargando...</div>
+            <div id="fibonacci">Fibonacci: Cargando...</div>
+        </div>
+
+        <h2>Gráfica en Tiempo Real</h2>
+        <canvas id="chart"></canvas>
+
+        <h2>Señales de Trading</h2>
+        <div id="signals">Señales: Cargando...</div>
+
+        <h2>Predicciones</h2>
+        <div id="news" style="max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background-color: #2c2c2c;">
+            Noticias: Cargando...
+        </div>
+    </div>
+
+    <script>
+        // Funciones de almacenamiento de preferencias
+        function saveUserPreferences() {
+            const coin = document.getElementById("coin").value;
+            const interval = document.getElementById("interval").value;
+            localStorage.setItem("selectedCoin", coin);
+            localStorage.setItem("selectedInterval", interval);
+        }
+
+        function loadUserPreferences() {
+            const savedCoin = localStorage.getItem("selectedCoin");
+            const savedInterval = localStorage.getItem("selectedInterval");
+
+            if (savedCoin) {
+                document.getElementById("coin").value = savedCoin;
+            }
+            if (savedInterval) {
+                document.getElementById("interval").value = savedInterval;
+            }
+        }
+
+       
+        // Funciones de notificaciones
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission !== "granted") {
+                        console.log("Permiso de notificación denegado");
+                    }
+                });
+            }
+        }
+
+        function showNotification(title, message) {
+            if (Notification.permission === "granted") {
+                new Notification(title, {
+                    body: message,
+                    icon: "https://example.com/icon.png" // Cambia el ícono si lo deseas
+                });
+            }
+        }
+
+
+        let historicalPrices = [];
+        let chartInstance;
+        const requestInterval = 61; // Intervalo de 61 segundos
+        let countdownTimer;
+        let realTimeTimer;
+
+        function startFetching() {
+            fetchMarketData();
+            startRealTimeUpdates();
+            startCountdown();
+        }
+
+        async function fetchMarketData() {
+            const coin = document.getElementById("coin").value;
+            await fetchCurrentPrice(coin);
+            await fetchOrderBook(coin);
+            await updateIndicators();
+            await fetchNews(); // Cargar noticias
+        }
+
+        async function fetchCurrentPrice(coin) {
+            const apiURL = `https://api.binance.com/api/v3/ticker/price?symbol=${coin}`;
+
+            try {
+                const response = await fetch(apiURL);
+                if (!response.ok) throw new Error(`Error en la API: ${response.statusText}`);
+                const data = await response.json();
+
+                  // Ajustar el número de decimales según la moneda
+                const decimalPlaces = (coin === "FTMUSDT" || coin === "POPCATUSDT" || coin === "LQTYUSDT" || coin === "DOGSUSDT"|| coin === "TONUSDT"|| coin === "SHIBUSDT" || coin === "DOGEUSDT") ? 4 : 2;
+        
+                document.getElementById("price").innerText = `Precio actual: $${parseFloat(data.price).toFixed(decimalPlaces)}`;
+                updateChart(parseFloat(data.price));
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        async function fetchOrderBook(coin) {
+            const orderBookURL = `https://api.binance.com/api/v3/depth?symbol=${coin}&limit=5`;
+
+            try {
+                const orderResponse = await fetch(orderBookURL);
+                if (!orderResponse.ok) throw new Error(`Error en la API de Órdenes: ${orderResponse.statusText}`);
+                const orderData = await orderResponse.json();
+
+                const decimalPlaces = (coin === "FTMUSDT" || coin === "POPCATUSDT" || coin === "LQTYUSDT" || coin === "DOGSUSDT"|| coin === "TONUSDT"|| coin === "SHIBUSDT" || coin === "DOGEUSDT") ? 4 : 2;
+        
+
+                const bids = orderData.bids.map(bid => `<div class="buy">Compra: $${parseFloat(bid[0]).toFixed(decimalPlaces)} (${bid[1]} ${coin.slice(0, 3)})</div>`).join('');
+                const asks = orderData.asks.map(ask => `<div class="sell">Venta: $${parseFloat(ask[0]).toFixed(decimalPlaces)} (${ask[1]} ${coin.slice(0, 3)})</div>`).join('');
+                
+                document.getElementById("bids").innerHTML = bids;
+                document.getElementById("asks").innerHTML = asks;
+            } catch (error) {
+                console.error("Error en libro de órdenes:", error);
+            }
+        }
+
+        async function updateIndicators() {
+            const coin = document.getElementById("coin").value;
+            const interval = document.getElementById("interval").value;
+
+            const apiURL = `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${interval}&limit=100`;
+
+            try {
+                const response = await fetch(apiURL);
+                if (!response.ok) throw new Error(`Error en la API: ${response.statusText}`);
+                const data = await response.json();
+
+                const decimalPlaces = (coin === "FTMUSDT" || coin === "POPCATUSDT" || coin === "LQTYUSDT" || coin === "DOGSUSDT"|| coin === "TONUSDT"|| coin === "SHIBUSDT" || coin === "DOGEUSDT") ? 4 : 2;
+        
+                historicalPrices = data.map(item => parseFloat(item[4])); // Precio de cierre
+
+                const high = Math.max(...historicalPrices);
+                const low = Math.min(...historicalPrices);
+                const volume = data.reduce((acc, item) => acc + parseFloat(item[5]), 0); // Volumen en 24h
+
+                document.getElementById("high").innerText = `Máximo: $${high.toFixed(decimalPlaces)}`;
+                document.getElementById("low").innerText = `Mínimo: $${low.toFixed(decimalPlaces)}`;
+                document.getElementById("volume").innerText = `Volumen en 24h: ${volume.toFixed(decimalPlaces)}`;
+
+
+                // Calcular indicadores
+                const sma = calculateSMA(historicalPrices, 14);
+                const ema = calculateEMA(historicalPrices, 14);
+                const rsi = calculateRSI(historicalPrices, 14);
+                const macd = calculateMACD(historicalPrices);
+                const bollinger = calculateBollingerBands(historicalPrices);
+                const fibonacci = calculateFibonacci(historicalPrices);
+
+
+                // Mostrar indicadores
+                document.getElementById("sma").innerText = `SMA: $${sma.toFixed(decimalPlaces)}`;
+                document.getElementById("ema").innerText = `EMA: $${ema.toFixed(decimalPlaces)}`;
+                document.getElementById("rsi").innerText = `RSI: ${rsi.toFixed(decimalPlaces)}`;
+                document.getElementById("macd").innerText = `MACD: ${macd.toFixed(decimalPlaces)}`;
+                document.getElementById("bollinger").innerText = `Bandas de Bollinger: $${bollinger.upper.toFixed(decimalPlaces)} / $${bollinger.lower.toFixed(decimalPlaces)}`;
+                document.getElementById("fibonacci").innerText = `Fibonacci: ${fibonacci.join(', ')}`;
+
+                const newsImpact = await analyzeNews();
+                document.getElementById("prediction").innerHTML = predictMarket(newsImpact, sma, ema, rsi, macd);
+
+                // Actualizar señales
+                updateTradingSignals(sma, ema, rsi);
+                
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        async function fetchNews() {
+            const newsApiKey = '6b7b0f8817d34d31b6cb59a8c7e40e54'; // Cambia esta clave si es necesario
+            const newsApiURL = `https://newsapi.org/v2/everything?q=cryptocurrency&apiKey=${newsApiKey}`;
+
+            try {
+                const response = await fetch(newsApiURL);
+                if (!response.ok) throw new Error(`Error en la API de Noticias: ${response.statusText}`);
+                const newsData = await response.json();
+
+                const newsHtml = newsData.articles.map(article => `<div>${article.title} - ${new Date(article.publishedAt).toLocaleString()}</div>`).join('');
+                document.getElementById("news").innerHTML = newsHtml || 'No hay noticias disponibles.';
+            } catch (error) {
+                console.error("Error al cargar noticias:", error);
+                document.getElementById("news").innerText = 'Error al cargar noticias.';
+            }
+        }
+
+        function calculateSMA(data, period) {
+            const sum = data.slice(-period).reduce((a, b) => a + b, 0);
+            return sum / period;
+        }
+
+        function calculateEMA(data, period) {
+            const k = 2 / (period + 1);
+            return data.reduce((acc, price, index) => {
+                if (index === 0) return price; // Primer valor
+                return (price * k) + (acc * (1 - k));
+            });
+        }
+
+        function calculateRSI(data, period) {
+            let gains = 0, losses = 0;
+            for (let i = 1; i < period; i++) {
+                const change = data[i] - data[i - 1];
+                if (change >= 0) gains += change;
+                else losses -= change;
+            }
+            const averageGain = gains / period;
+            const averageLoss = losses / period;
+            const rs = averageGain / averageLoss;
+            return 100 - (100 / (1 + rs));
+        }
+
+        function calculateMACD(data) {
+            const shortEma = calculateEMA(data, 12);
+            const longEma = calculateEMA(data, 26);
+            return shortEma - longEma;
+        }
+
+        function calculateBollingerBands(data) {
+            const sma = calculateSMA(data, 20);
+            const stdDev = Math.sqrt(data.slice(-20).reduce((acc, price) => acc + Math.pow(price - sma, 2), 0) / 20);
+            return {
+                upper: sma + (stdDev * 2),
+                lower: sma - (stdDev * 2)
+            };
+        }
+
+        function calculateFibonacci(data) {
+            const max = Math.max(...data);
+            const min = Math.min(...data);
+            const difference = max - min;
+            return [
+                max,
+                max - (difference * 0.236),
+                max - (difference * 0.382),
+                max - (difference * 0.618),
+                min
+            ];
+        }
+
+        async function analyzeNews() {
+            const newsApiKey = '6b7b0f8817d34d31b6cb59a8c7e40e54'; // Cambia esta clave si es necesario
+            const newsApiURL = `https://newsapi.org/v2/everything?q=cryptocurrency&apiKey=${newsApiKey}`;
+            try {
+                const response = await fetch(newsApiURL);
+                const newsData = await response.json();
+                const keywords = ['bueno', 'positivo', 'alcista', 'mal', 'negativo', 'bajista'];
+                let impact = '';
+
+                newsData.articles.forEach(article => {
+                    const title = article.title.toLowerCase();
+                    if (keywords.some(keyword => title.includes(keyword))) {
+                        impact = title.includes('mal') || title.includes('negativo') ? 'short' : 'long';
+                    }
+                });
+
+                return impact || 'neutral';
+            } catch (error) {
+                console.error("Error al analizar noticias:", error);
+                return 'neutral';
+            }
+        }
+
+        function predictMarket(newsImpact, sma, ema, rsi, macd) {
+            let prediction = "Mantener posición.";
+            if (rsi < 30 && ema > sma) {
+                prediction = `<span class="long">Se sugiere ir Long (comprar).</span>`;
+                showNotification("Oportunidad de Compra", "El RSI está por debajo de 30, podrías considerar comprar.");
+            } else if (rsi > 70 && ema < sma) {
+                prediction = `<span class="short">Se sugiere ir Short (vender).</span>`;
+                showNotification("Oportunidad de Venta", "El RSI está por encima de 70, podrías considerar vender.");
+            }
+            return prediction;
+        }
+
+        function updateTradingSignals(sma, ema, rsi) {
+            const signals = {
+                "1m": 'Neutral',
+                "5m": 'Neutral',
+                "15m": 'Neutral',
+                "30m": 'Neutral',
+                "1h": 'Neutral',
+                "4h": 'Neutral',
+                "1d": 'Neutral'
+            };
+
+            if (rsi < 30 && ema > sma) {
+                signals["1m"] = 'Strong Buy';
+            } else if (rsi < 40 && ema > sma) {
+                signals["5m"] = 'Buy';
+            } else if (rsi > 60 && ema < sma) {
+                signals["15m"] = 'Sell';
+            } else if (rsi > 70 && ema < sma) {
+                signals["30m"] = 'Strong Sell';
+            }
+
+            document.getElementById("signals").innerHTML = Object.keys(signals).map(key => {
+                const signalClass = signals[key].toLowerCase().replace(" ", "-");
+                return `<div class="signal ${signalClass}">${key}: ${signals[key]}</div>`;
+            }).join('');
+        }
+
+        function updateChart(price) {
+            if (!chartInstance) {
+                const ctx = document.getElementById('chart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [], // Aquí se agregarán las etiquetas
+                        datasets: [
+                            {
+                                label: 'Precio',
+                                data: [], // Aquí se agregarán los precios
+                                borderColor: 'rgba(105, 210, 231, 1)',
+                                borderWidth: 2,
+                                fill: false,
+                            },
+                            {
+                                label: 'SMA',
+                                data: [], // SMA
+                                borderColor: 'rgba(255, 206, 86, 1)',
+                                borderWidth: 1,
+                                fill: false,
+                            },
+                            {
+                                label: 'EMA',
+                                data: [], // EMA
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1,
+                                fill: false,
+                            },
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            const currentTime = new Date().toLocaleTimeString();
+            chartInstance.data.labels.push(currentTime);
+            chartInstance.data.datasets[0].data.push(price);
+
+            // Limitar el número de puntos en la gráfica
+            if (chartInstance.data.labels.length > 20) {
+                chartInstance.data.labels.shift();
+                chartInstance.data.datasets[0].data.shift();
+            }
+
+            // Aquí puedes agregar SMA y EMA a la gráfica
+            const smaValue = calculateSMA(historicalPrices, 14);
+            const emaValue = calculateEMA(historicalPrices, 14);
+            chartInstance.data.datasets[1].data.push(smaValue);
+            chartInstance.data.datasets[2].data.push(emaValue);
+
+            // Actualiza la gráfica
+            chartInstance.update();
+        }
+
+        function startRealTimeUpdates() {
+            realTimeTimer = setInterval(() => {
+                const coin = document.getElementById("coin").value;
+                fetchCurrentPrice(coin);
+                fetchOrderBook(coin);
+            }, 5000); // Actualiza cada 5 segundos
+        }
+
+        function startCountdown() {
+            let countdown = requestInterval;
+            countdownTimer = setInterval(() => {
+                countdown--;
+                document.getElementById("countdown").innerText = `Próxima solicitud en: ${countdown} segundos`;
+                if (countdown <= 0) {
+                    clearInterval(countdownTimer);
+                    fetchMarketData(); // Llama a la función para obtener datos al terminar el countdown
+                    countdown = requestInterval; // Reinicia el countdown
+                    startCountdown(); // Reinicia el countdown
+                }
+            }, 1000);
+        }
+        // Lógica de la aplicación
+        document.getElementById("startButton").addEventListener("click", function() {
+            saveUserPreferences(); // Guarda preferencias
+            fetchMarketData(); // Obtiene datos del mercado
+            // Aquí podrías agregar lógica para actualizaciones en tiempo real o countdown
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            loadUserPreferences(); // Cargar preferencias al cargar la página
+            requestNotificationPermission(); // Solicitar permiso de notificaciones
+        });
+        
+    </script>
+</body>
+</html>
